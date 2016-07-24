@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 Jeroen Ooms ([\@opencpu](https://jeroenooms.github.io/)) provides `R` users a magical polyglot world of R, JavaScript, C, and C++.  This is my attempt to both thank him and highlight some of all that he has done.  Much of my new R depends on his work.
 
-## Ooms' Packages on CRAN
+## Ooms' CRAN Packages
 
 [metacran](http://www.r-pkg.org/) provides a list of all [Jeroen's CRAN packages](http://www.r-pkg.org/maint/jeroen.ooms@stat.ucla.edu).  Now, I wonder if any of his packages are in the *Top Downloads*. Let's leverage the helpful meta again from [metacran](http://www.r-pkg.org/) and very quickly get some assistance from *hint-hint* [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/index.html).
 
