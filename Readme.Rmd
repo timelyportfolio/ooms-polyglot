@@ -1,0 +1,37 @@
+---
+title: "Polyglot World from Jeroen Ooms"
+author: "Kenton Russell"
+date: "July 24, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+Jeroen Ooms ([\@opencpu](https://jeroenooms.github.io/)) provides `R` users a magical polyglot world of R, JavaScript, C, and C++.  This is my attempt to both thank him and highlight some of all that he has done.  Much of my new R depends on his work.
+
+## Ooms' Packages on CRAN
+
+[metacran](http://www.r-pkg.org/) provides a list of all [Jeroen's CRAN packages](http://www.r-pkg.org/maint/jeroen.ooms@stat.ucla.edu).  Now, I wonder if any of his packages are in the *Top Downloads*. Let's leverage the helpful meta again from [metacran](http://www.r-pkg.org/) and very quickly get some assistance from *hint-hint* [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/index.html).
+
+
+```{r}
+library(jsonlite)
+library(formattable)
+library(tibble)
+library(magrittr)
+
+fromJSON("http://cranlogs.r-pkg.org/top/last-month/9") %>%
+  {as_tibble(rank=rownames(.$downloads),.$downloads)} %>%
+  rownames_to_column(var = "rank") %>%
+  format_table(
+    formatters = list(
+      area(row=which(.$package=="jsonlite")) ~ formatter("span", style="background-color:#D4F")
+    )
+  )
+```
+
+`jsonlite` is an ultra-fast reliable tool to convert and create `json` in `R`.  It's fast because like much Jeroen's work, he leverages `C`/`C++` libraries.  `shiny` and `htmlwidgets` both depend on `jsonlite`.
+
+
