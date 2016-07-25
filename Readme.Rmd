@@ -207,12 +207,12 @@ library(commonmark)
 
 rmarkdown::render("Readme.Rmd", "Readme.md", output_format="md_document")
 
-tex <- markdown_latex(readLines("Readme.md"))
-cat(tex, file="Readme.tex")
+h <- markdown_html(readLines("Readme.md"))
+cat(h, file="Readme_commonmark.html")
 ```
 
 ```{r echo=FALSE}
-tags$a(href="./Readme.tex", alt="link to tex version", "rendered as tex")
+tags$a(href="./Readme_commonmark.html", alt="link to commonmark version", "rendered with commonmark")
 ```
 
 ## Conclusion and Thanks
