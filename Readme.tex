@@ -1,0 +1,222 @@
+Jeroen Ooms (\href{https://jeroenooms.github.io/}{@opencpu}) provides \texttt{R}
+users a magical polyglot world of R, JavaScript, C, and C++. This is my
+attempt to both thank him and highlight some of all that he has done.
+Much of my new R depends on his work.
+
+\subsection{Ooms\textquotesingle{} Packages}
+
+\href{http://www.r-pkg.org/}{metacran} provides a list of all \href{http://www.r-pkg.org/maint/jeroen.ooms@stat.ucla.edu}{Jeroen\textquotesingle{}s CRAN
+packages}. Now, I
+wonder if any of his packages are in the \emph{Top Downloads}.
+
+\subsubsection{jsonlite}
+
+Let\textquotesingle{}s leverage the helpful meta again from
+\href{http://www.r-pkg.org/}{metacran} and very quickly get some assistance
+from \emph{hint-hint}
+\href{https://cran.r-project.org/web/packages/jsonlite/index.html}{\texttt{jsonlite}}.
+
+\begin{verbatim}
+library(jsonlite)
+library(formattable)
+library(tibble)
+library(magrittr)
+
+fromJSON("http://cranlogs.r-pkg.org/top/last-month/9") %>%
+  {as_tibble(rank=rownames(.$downloads),.$downloads)} %>%
+  rownames_to_column(var = "rank") %>%
+  format_table(
+    formatters = list(
+      area(row=which(.$package=="jsonlite")) ~ formatter("span", style="background-color:#D4F; width:100%")
+    )
+  )
+\end{verbatim}
+
+\subsubsection{V8}
+
+\href{https://github.com/jeroenooms/V8}{\texttt{V8}} gives \texttt{R} its own embedded
+JavaScript engine to leverage functionality in JavaScript that might not
+exist in \texttt{R}. For example, the
+\href{http://marvl.infotech.monash.edu/webcola}{\texttt{WebCola}} constraint-based
+layout engine offers valuable technology not available within R. Let\textquotesingle{}s
+partially recreate the \href{http://marvl.infotech.monash.edu/webcola/examples/smallgroups.html}{smallgroups
+example}
+all in R. You might notice that the previously mentioned \texttt{jsonlite} is
+essential to this workflow.
+
+\begin{verbatim}
+library(V8)
+library(jsonlite)
+library(scales)
+
+ctx = new_context(global="window")
+
+ctx$source("https://cdn.rawgit.com/tgdwyer/WebCola/master/WebCola/cola.min.js")
+
+## [1] "true"
+
+### small grouped example
+group_json <- fromJSON(
+  system.file(
+    "htmlwidgets/lib/WebCola/examples/graphdata/smallgrouped.json",
+    package = "colaR"
+  )
+)
+
+# need to get forEach polyfill
+ctx$source(
+  "https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.1.10/es5-shim.min.js"
+)
+
+# code to recreate small group example
+js_group <- '
+// console.assert does not exists
+console = {}
+console.assert = function(){};
+
+var width = 960,
+  height = 500
+
+graph = {
+"nodes":[
+  {"name":"a","width":60,"height":40},
+  {"name":"b","width":60,"height":40},
+  {"name":"c","width":60,"height":40},
+  {"name":"d","width":60,"height":40},
+  {"name":"e","width":60,"height":40},
+  {"name":"f","width":60,"height":40},
+  {"name":"g","width":60,"height":40}
+],
+"links":[
+  {"source":1,"target":2},
+  {"source":2,"target":3},
+  {"source":3,"target":4},
+  {"source":0,"target":1},
+  {"source":2,"target":0},
+  {"source":3,"target":5},
+  {"source":0,"target":5}
+],
+"groups":[
+  {"leaves":[0], "groups":[1]},
+  {"leaves":[1,2]},
+  {"leaves":[3,4]}
+  ]
+}
+
+var g_cola = new cola.Layout()
+  .linkDistance(100)
+  .avoidOverlaps(true)
+  .handleDisconnected(false)
+  .size([width, height]);
+
+g_cola
+  .nodes(graph.nodes)
+  .links(graph.links)
+  .groups(graph.groups)
+  .start()
+'
+
+# run the small group JS code in V8
+ctx$eval(js_group)
+
+## [1] "[object Object]"
+\end{verbatim}
+
+Now, \texttt{WebCola} has done the hard work and laid out our nodes and links,
+so let\textquotesingle{}s get their positions.
+
+\begin{verbatim}
+nodes <- ctx$get('
+  graph.nodes.map(function(d){
+    return {name: d.name, x: d.x, y: d.y, height: d.height, width: d.width};
+  })
+')
+
+links <- ctx$get('
+  graph.links.map(function(d){
+    return {x1: d.source.x, y1: d.source.y, x2: d.target.x, y2: d.target.y}
+  })
+')
+\end{verbatim}
+
+Some great examples of packages employing \texttt{V8} are
+\href{http://www.r-pkg.org/pkg/geojsonio}{\texttt{geojsonio}},
+\href{https://github.com/ropensci/lawn}{\texttt{lawn}},
+\href{http://www.r-pkg.org/pkg/DiagrammeRsvg}{\texttt{DiagrammeRsvg}},
+\href{https://github.com/ateucher/rmapshaper}{\texttt{rmapshaper}}, and
+\href{https://github.com/edwindj/daff}{\texttt{daff}}.
+
+\subsubsection{rjade}
+
+We got layout coordinates above. Let\textquotesingle{}s use another one of Jeroen\textquotesingle{}s
+packages \href{https://github.com/jeroenooms/rjade}{\texttt{rjade}} that provides
+\href{http://jade-lang.com/}{\texttt{jade}} (now called
+\href{https://github.com/pugjs/pug}{pug}) templates through \texttt{V8}. \texttt{rjade}
+will let us build a \texttt{SVG} graph with our layout.
+
+\begin{verbatim}
+library(rjade)
+library(htmltools)
+
+svg <- jade_compile(
+'
+doctype xml
+svg(version="1.1",xmlns="http://www.w3.org/2000/svg",xmlns:xlink="http://www.w3.org/1999/xlink",width="960px",height="500px")
+  each l in lines
+    line(style={fill:none, stroke:"lightgray"})&attributes({"x1": l.x1, "x2": l.x2, "y1": l.y1, "y2": l.y2})
+  each val in rects
+    g
+      rect(style={fill: fillColor})&attributes({"x": val.x - val.width/2, "y": val.y - val.height/2, "height": val.height - 6, "width": val.width - 6, rx: 5, ry: 5})
+      text&attributes({"x": val.x, "y": val.y, "dy": ".2em", "text-anchor":"middle"})= val.name
+'
+      ,pretty=T
+)(rects = nodes, lines = links, fillColor = "lightgray")
+
+HTML(svg)
+\end{verbatim}
+
+If we are not in the browser though with inline \texttt{SVG} support, we very
+likely will want a static image format such as \texttt{png} or \texttt{jpeg}. Of
+course, Jeroen has that covered also with the crazy-speedy
+\href{https://github.com/jeroenooms/rsvg}{\texttt{rsvg}}. Jeroen offers
+\href{https://github.com/jeroenooms/base64}{\texttt{base64}}, but in this case we
+will use \texttt{base64enc}, since it allows \texttt{raw}.
+
+\begin{verbatim}
+library(rsvg)
+library(base64enc)
+
+graph_png <- rsvg_png(charToRaw(svg))
+
+tags$img(src=dataURI(graph_png), mime="image/png")
+\end{verbatim}
+
+\subsubsection{magick}
+
+Jeroen\textquotesingle{}s newest package \href{https://github.com/jeroenooms/magick}{\texttt{magick}}
+is in my mind the coolest. \texttt{magick} gives us all the power of
+\href{http://www.imagemagick.org/script/index.php}{\texttt{ImageMagick}} as easy \texttt{R}
+functions, and is pure wizardry. I am still shocked that it compiled
+first try with absolutely no problems.
+
+\begin{verbatim}
+library(magick)
+
+graph_img <- image_read(graph_png)
+wizard_img <- image_read("http://www.imagemagick.org/image/wizard.png")
+
+images <- image_annotate(
+  image_append(
+    c(
+      image_scale(image_crop(wizard_img, "600x600+100+100"), "100"),
+      image_crop(graph_img, "400x400+200+0")
+    )
+  ),
+  "Ooms is a Wizard!",
+  size = 20,
+  color = "blue",
+  location = "+100+200"
+)
+
+tags$img(src=dataURI(image_write(images)), mime="image/png")
+\end{verbatim}
